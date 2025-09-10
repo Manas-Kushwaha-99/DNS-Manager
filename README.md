@@ -1,359 +1,111 @@
 # DNS Manager
 
-## Overview
+A modern **Windows-only DNS Manager** built with **Python** and **Flet**, providing a clean graphical interface to manage DNS settings quickly.
 
-DNS Manager is a powerful and user-friendly Python application designed to simplify DNS record management across multiple DNS providers. This tool provides a unified interface for managing DNS records, making it easier for system administrators, developers, and IT professionals to handle their domain configurations efficiently.
-
-## Features
-
-### Core Functionality
-- **Multi-Provider Support**: Compatible with major DNS providers including:
-  - Cloudflare
-  - AWS Route 53
-  - Google Cloud DNS
-  - DigitalOcean DNS
-  - Namecheap
-  - And more...
-
-### DNS Record Management
-- **Create**: Add new DNS records with validation
-- **Read**: View and search existing DNS records
-- **Update**: Modify existing DNS records safely
-- **Delete**: Remove DNS records with confirmation prompts
-
-### Advanced Features
-- **Bulk Operations**: Manage multiple records simultaneously
-- **Backup & Restore**: Create backups of DNS configurations
-- **Zone File Import/Export**: Support for standard zone file formats
-- **Real-time Validation**: Validate DNS records before applying changes
-- **Change History**: Track all DNS modifications with timestamps
-- **TTL Management**: Flexible Time-To-Live configuration
-
-### Security & Reliability
-- **API Key Management**: Secure storage and handling of provider credentials
-- **Rate Limiting**: Respect provider API limits to avoid service disruption
-- **Error Handling**: Comprehensive error handling and recovery mechanisms
-- **Logging**: Detailed logging for troubleshooting and audit trails
-
-## Installation
-
-### Prerequisites
-- Python 3.7 or higher
-- pip package manager
-- Active accounts with supported DNS providers
-
-### Quick Install
-```bash
-# Clone the repository
-git clone https://github.com/Manas-Kushwaha-99/DNS-Manager.git
-
-# Navigate to the project directory
-cd DNS-Manager
-
-# Install required dependencies
-pip install -r requirements.txt
-
-# Run the application
-python DNS-Manager.py
-```
-
-### Virtual Environment (Recommended)
-```bash
-# Create virtual environment
-python -m venv dns-manager-env
-
-# Activate virtual environment
-# On Windows:
-dns-manager-env\Scripts\activate
-# On macOS/Linux:
-source dns-manager-env/bin/activate
-
-# Install dependencies
-pip install -r requirements.txt
-```
-
-## Configuration
-
-### Provider Setup
-1. **Cloudflare**:
-   - Obtain API token from Cloudflare dashboard
-   - Set required permissions: Zone.Read, Zone.Edit
-
-2. **AWS Route 53**:
-   - Configure AWS credentials via AWS CLI or environment variables
-   - Ensure appropriate IAM permissions for Route 53
-
-3. **Google Cloud DNS**:
-   - Set up service account with DNS admin permissions
-   - Download service account key file
-
-### Environment Variables
-Create a `.env` file in the project root:
-```env
-# Cloudflare
-CLOUDFLARE_API_TOKEN=your_api_token_here
-CLOUDFLARE_EMAIL=your_email@example.com
-
-# AWS Route 53
-AWS_ACCESS_KEY_ID=your_access_key
-AWS_SECRET_ACCESS_KEY=your_secret_key
-AWS_REGION=us-east-1
-
-# Google Cloud DNS
-GOOGLE_APPLICATION_CREDENTIALS=path/to/service-account.json
-GCP_PROJECT_ID=your_project_id
-```
-
-## Usage
-
-### Basic Operations
-
-#### List DNS Records
-```bash
-python DNS-Manager.py list --domain example.com --provider cloudflare
-```
-
-#### Add DNS Record
-```bash
-python DNS-Manager.py add --domain example.com --type A --name www --value 192.168.1.1 --ttl 3600
-```
-
-#### Update DNS Record
-```bash
-python DNS-Manager.py update --domain example.com --type A --name www --value 192.168.1.2
-```
-
-#### Delete DNS Record
-```bash
-python DNS-Manager.py delete --domain example.com --type A --name www
-```
-
-### Bulk Operations
-
-#### Import from CSV
-```bash
-python DNS-Manager.py import --file dns-records.csv --domain example.com
-```
-
-#### Export to CSV
-```bash
-python DNS-Manager.py export --domain example.com --output dns-backup.csv
-```
-
-### Backup Operations
-
-#### Create Backup
-```bash
-python DNS-Manager.py backup --domain example.com --output backup-$(date +%Y%m%d).json
-```
-
-#### Restore from Backup
-```bash
-python DNS-Manager.py restore --file backup-20231201.json --domain example.com
-```
-
-## Supported Record Types
-
-- **A**: IPv4 address records
-- **AAAA**: IPv6 address records
-- **CNAME**: Canonical name records
-- **MX**: Mail exchange records
-- **TXT**: Text records
-- **NS**: Name server records
-- **PTR**: Pointer records
-- **SRV**: Service records
-- **SOA**: Start of authority records
-
-## API Reference
-
-### Core Classes
-
-#### DNSManager
-Main class for DNS operations
-```python
-from dns_manager import DNSManager
-
-# Initialize with provider
-manager = DNSManager(provider='cloudflare', api_token='your_token')
-
-# List records
-records = manager.list_records('example.com')
-
-# Add record
-manager.add_record('example.com', 'A', 'www', '192.168.1.1', ttl=3600)
-```
-
-#### Record
-DNS record representation
-```python
-class Record:
-    def __init__(self, name, type, value, ttl=3600):
-        self.name = name
-        self.type = type
-        self.value = value
-        self.ttl = ttl
-```
-
-## Configuration File
-
-Create `config.yaml` for advanced configuration:
-```yaml
-default_provider: cloudflare
-default_ttl: 3600
-logging:
-  level: INFO
-  file: dns-manager.log
-backup:
-  auto_backup: true
-  backup_directory: ./backups
-  retention_days: 30
-validation:
-  strict_mode: true
-  validate_mx: true
-  validate_nameservers: true
-```
-
-## Troubleshooting
-
-### Common Issues
-
-1. **Authentication Errors**
-   - Verify API credentials are correct
-   - Check API token permissions
-   - Ensure provider account is active
-
-2. **Rate Limiting**
-   - Reduce batch sizes
-   - Implement delays between requests
-   - Check provider rate limits
-
-3. **DNS Propagation**
-   - Allow 24-48 hours for global propagation
-   - Use DNS checker tools to verify changes
-   - Consider lowering TTL values before major changes
-
-### Debug Mode
-Run with debug output:
-```bash
-python DNS-Manager.py --debug list --domain example.com
-```
-
-### Log Files
-Check log files for detailed error information:
-- `dns-manager.log`: General application logs
-- `error.log`: Error-specific logs
-- `audit.log`: Change history and audit trail
-
-## Contributing
-
-We welcome contributions! Please see our [Contributing Guidelines](CONTRIBUTING.md) for details.
-
-### Development Setup
-```bash
-# Fork and clone the repository
-git clone https://github.com/your-username/DNS-Manager.git
-
-# Create feature branch
-git checkout -b feature/your-feature-name
-
-# Install development dependencies
-pip install -r requirements-dev.txt
-
-# Run tests
-python -m pytest tests/
-
-# Run linting
-flake8 .
-pylint dns_manager/
-```
-
-### Code Style
-- Follow PEP 8 guidelines
-- Use type hints where appropriate
-- Write comprehensive docstrings
-- Maintain test coverage above 90%
-
-## Testing
-
-### Unit Tests
-```bash
-# Run all tests
-python -m pytest
-
-# Run with coverage
-python -m pytest --cov=dns_manager
-
-# Run specific test file
-python -m pytest tests/test_cloudflare.py
-```
-
-### Integration Tests
-```bash
-# Run integration tests (requires provider credentials)
-python -m pytest tests/integration/ --integration
-```
-
-## Security
-
-### Best Practices
-- Store API credentials securely using environment variables
-- Use principle of least privilege for API permissions
-- Regularly rotate API keys
-- Monitor DNS changes for unauthorized modifications
-- Enable two-factor authentication on provider accounts
-
-### Reporting Security Issues
-Please report security vulnerabilities to: security@example.com
-
-## License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## Support
-
-### Documentation
-- [Wiki](https://github.com/Manas-Kushwaha-99/DNS-Manager/wiki)
-- [API Documentation](https://dns-manager.readthedocs.io/)
-- [Tutorials](https://github.com/Manas-Kushwaha-99/DNS-Manager/tree/main/docs/tutorials)
-
-### Community
-- [GitHub Discussions](https://github.com/Manas-Kushwaha-99/DNS-Manager/discussions)
-- [Issue Tracker](https://github.com/Manas-Kushwaha-99/DNS-Manager/issues)
-- [Discord Server](https://discord.gg/dns-manager)
-
-### Professional Support
-For enterprise support and custom integrations, contact: support@example.com
-
-## Changelog
-
-See [CHANGELOG.md](CHANGELOG.md) for a detailed history of changes.
-
-## Roadmap
-
-### Upcoming Features
-- [ ] Web-based GUI interface
-- [ ] DNS analytics and monitoring
-- [ ] Automated DNS health checks
-- [ ] Integration with CI/CD pipelines
-- [ ] Mobile application
-- [ ] Advanced DNS security features
-
-### Version 2.0 Goals
-- Enhanced performance and scalability
-- Additional provider integrations
-- Advanced automation capabilities
-- Improved user experience
-
-## Acknowledgments
-
-- Thanks to all contributors who have helped improve this project
-- Special thanks to the DNS provider APIs that make this tool possible
-- Inspired by the need for unified DNS management across multiple providers
+This tool makes it simple to switch between popular DNS providers, configure custom servers, reset to automatic, or flush the DNS cache — all without digging through command-line tools.
 
 ---
 
-**Note**: This tool is designed for educational and professional use. Always test DNS changes in a development environment before applying to production systems.
+## ✨ Features
 
-For the latest updates and releases, visit our [GitHub repository](https://github.com/Manas-Kushwaha-99/DNS-Manager).
+* Detect and list all active network adapters
+* View current DNS configuration
+* One-click switch to popular public DNS providers
+* Custom DNS entry support (Primary & Secondary)
+* Reset DNS to automatic (DHCP)
+* Flush DNS cache easily
+* Real-time activity logs with timestamps
+* Clean, modern dark UI with icons and presets
 
-**Made with ❤️ by [Manas Kushwaha](https://github.com/Manas-Kushwaha-99)**
+---
+
+## 📸 Demo
+
+![DNS MANAGER](https://github.com/user-attachments/assets/9efe3e15-12a2-40b8-b0d6-35b8a1731cb8)
+
+---
+
+## 🛠️ Tech Stack
+
+* **Python 3.10+**
+* [Flet](https://flet.dev/) (for GUI)
+* Windows PowerShell (for networking commands)
+* Multithreading for non-blocking operations
+
+---
+
+## 🚀 Installation & Usage
+
+### 1. Clone the repository
+
+```bash
+git clone https://github.com/yourusername/DNS-Manager.git
+cd DNS-Manager
+```
+
+### 2. Install dependencies
+
+```bash
+pip install flet
+```
+
+### 3. Run the tool
+
+```bash
+python dns1.py
+```
+
+⚠️ **Note:**
+
+* Requires **Windows** (PowerShell commands won’t work on Linux/macOS).
+* Run with **Administrator privileges** for DNS changes to apply.
+
+---
+
+## 📦 Building Executable (Optional)
+
+You can create a `.exe` for easy distribution using PyInstaller:
+
+```bash
+pip install pyinstaller
+pyinstaller --onefile --noconsole dns1.py
+```
+
+The `.exe` will be available inside the `dist` folder.
+
+---
+
+## 🌐 Supported DNS Presets
+
+* **Google DNS** → Fast and reliable (`8.8.8.8`, `8.8.4.4`)
+* **Cloudflare DNS** → Privacy-focused (`1.1.1.1`, `1.0.0.1`)
+* **Cloudflare Security** → Malware & phishing protection (`1.1.1.2`, `1.0.0.2`)
+* **Quad9** → Privacy + malware protection (`9.9.9.9`, `149.112.112.112`)
+* **OpenDNS** → Cisco’s DNS (`208.67.222.222`, `208.67.220.220`)
+* **AdGuard DNS** → Ad-blocking DNS (`94.140.14.14`, `94.140.15.15`)
+* **Comodo Secure** → Security DNS (`8.26.56.26`, `8.20.247.20`)
+* **CleanBrowsing** → Family-friendly filtering (`185.228.168.9`, `185.228.169.9`)
+* **DNS.Watch** → German privacy DNS (`84.200.69.80`, `84.200.70.40`)
+* **UncensoredDNS** → Unfiltered Danish DNS (`91.239.100.100`, `89.233.43.71`)
+* **Mullvad DNS** → Privacy-first DNS from Mullvad VPN (`194.242.2.2`, `194.242.2.3`)
+* **Neustar UltraDNS** → Enterprise DNS (`156.154.70.2`, `156.154.71.2`)
+* **Yandex DNS** → Russian DNS (`77.88.8.8`, `77.88.8.1`)
+
+---
+
+## 📌 Future Improvements
+
+* Add system tray support
+* Cross-platform support (Linux/macOS)
+* More DNS providers & custom profiles
+* Export/import custom presets
+
+---
+
+## ⚠️ Disclaimer
+
+This project provides a GUI for switching DNS servers using standard Windows PowerShell commands.
+All listed DNS providers are **public and legal**, offered by their respective organizations.
+The author does not own or operate these DNS services.
+
+---
