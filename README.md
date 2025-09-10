@@ -37,7 +37,7 @@ Easily switch between public DNS providers, configure custom servers, reset to a
 ### 1️⃣ Clone the repository
 
 ```bash
-git clone https://github.com/yourusername/DNS-Manager.git
+git clone https://github.com/Manas-Kushwaha-99/DNS-Manager.git
 cd DNS-Manager
 ```
 
