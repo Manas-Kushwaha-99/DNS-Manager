@@ -64,7 +64,7 @@ python DNS-Manager.py
 A ready-to-run Windows build is available on GitHub Releases.
 
 **Latest stable release**  
-[DNS Manager]([https://github.com/yourusername/DNS-Manager/releases/latest](https://github.com/Manas-Kushwaha-99/DNS-Manager/releases/tag/release))
+[DNS Manager](https://github.com/Manas-Kushwaha-99/DNS-Manager/releases/tag/release))
 
 ---
 
