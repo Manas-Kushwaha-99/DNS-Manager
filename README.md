@@ -28,7 +28,7 @@ Easily switch between public DNS providers, configure custom servers, reset to a
 ## 🛠️ Tech Stack
 
 * 🐍 Python 3.10+
-* 🎨 [Flet](https://flet.dev/) for GUI
+* 🎨 [Flet](https://flet.dev/) for GUI(Version:0.28.3)
 * 💻 Windows PowerShell (network commands)
 
 ---
