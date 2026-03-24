@@ -20,7 +20,8 @@ Easily switch between public DNS providers, configure custom servers, reset to a
 
 ## 🎥 Demo
 
-![DNS MANAGER](https://github.com/user-attachments/assets/242cb648-99f9-4742-be4d-fd9d2751974d)
+![DNS MANAGER](https://github.com/user-attachments/assets/d470b448-3279-4d43-a20c-b70fe8e7c09e)
+
 
 
 ---
