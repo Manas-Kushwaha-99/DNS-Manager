@@ -46,7 +46,7 @@ cd DNS-Manager
 ### 2️⃣ Install dependencies
 
 ```bash
-pip install flet
+pip install flet==0.28.3
 ```
 
 ### 3️⃣ Run the tool
@@ -66,7 +66,7 @@ python DNS-Manager.py
 A ready-to-run Windows build is available on GitHub Releases.
 
 **Latest stable release**  
-[DNS Manager]([https://github.com/Manas-Kushwaha-99/DNS-Manager/releases/tag/release](https://github.com/Manas-Kushwaha-99/DNS-Manager/releases/tag/2.0))
+[DNS Manager](https://github.com/Manas-Kushwaha-99/DNS-Manager/releases/tag/2.0)
 
 ---
 
