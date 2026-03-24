@@ -76,17 +76,13 @@ A ready-to-run Windows build is available on GitHub Releases.
 | -------------------- | ---------------- | ----------------- | ----------------------------- |
 | **Google**           | `8.8.8.8`        | `8.8.4.4`         | Fast & reliable               |
 | **Cloudflare**       | `1.1.1.1`        | `1.0.0.1`         | Privacy-focused               |
-| **Cloudflare Sec**   | `1.1.1.2`        | `1.0.0.2`         | Malware & phishing protection |
+| **Cloudflare Security**| `1.1.1.2`        | `1.0.0.2`         | Malware & phishing protection |
 | **Quad9**            | `9.9.9.9`        | `149.112.112.112` | Security + privacy            |
 | **OpenDNS**          | `208.67.222.222` | `208.67.220.220`  | Cisco’s reliable DNS          |
 | **AdGuard**          | `94.140.14.14`   | `94.140.15.15`    | Ad-blocking DNS               |
-| **Comodo Secure**    | `8.26.56.26`     | `8.20.247.20`     | Security-focused DNS          |
 | **CleanBrowsing**    | `185.228.168.9`  | `185.228.169.9`   | Family-safe filtering         |
 | **DNS.Watch**        | `84.200.69.80`   | `84.200.70.40`    | German privacy DNS            |
-| **UncensoredDNS**    | `91.239.100.100` | `89.233.43.71`    | Danish, unfiltered            |
 | **Mullvad**          | `194.242.2.2`    | `194.242.2.3`     | Privacy-first, Mullvad VPN    |
-| **Neustar UltraDNS** | `156.154.70.2`   | `156.154.71.2`    | Enterprise-grade security     |
-| **Yandex DNS**       | `77.88.8.8`      | `77.88.8.1`       | Russian DNS w/ multiple modes |
 
 ---
 
