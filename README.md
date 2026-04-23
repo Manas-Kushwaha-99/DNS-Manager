@@ -94,3 +94,7 @@ The author does **not** own or operate these DNS services.
 
 ---
 
+## Acknowledgements
+
+This project was built with the assistance of AI tools for code generation, debugging, and documentation.
+
