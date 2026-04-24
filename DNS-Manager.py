@@ -1,6 +1,9 @@
+import base64
 import ctypes
 import ipaddress
+import os
 import platform
+import struct
 import subprocess
 import sys
 import threading
@@ -8,6 +11,104 @@ import time
 from dataclasses import dataclass, field
 
 import flet as ft
+import httpx
+
+
+TEST_HOSTNAMES = [
+    "google.com",
+    "youtube.com",
+    "facebook.com",
+    "reddit.com",
+    "amazon.com",
+    "wikipedia.org",
+    "netflix.com",
+    "microsoft.com",
+]
+
+TEST_ROUNDS = 3
+TIMEOUT_SECONDS = 5
+TIMEOUT_PENALTY_MS = 5000
+
+
+def build_dns_query(hostname: str) -> bytes:
+    header = bytearray(12)
+    txid = int.from_bytes(os.urandom(2), "big")
+    header[0] = (txid >> 8) & 0xFF
+    header[1] = txid & 0xFF
+    header[2] = 0x01
+    header[5] = 0x01
+    labels = hostname.rstrip(".").split(".")
+    qname = bytearray()
+    for label in labels:
+        encoded = label.encode("ascii")
+        qname.append(len(encoded))
+        qname.extend(encoded)
+    qname.append(0)
+    qtype_class = struct.pack(">HH", 1, 1)
+    return bytes(header + qname + qtype_class)
+
+
+def encode_dns_query_base64url(query: bytes) -> str:
+    return base64.urlsafe_b64encode(query).rstrip(b"=").decode("ascii")
+
+
+def _detect_doh_method(client: httpx.Client, doh_url: str) -> str | None:
+    query = build_dns_query("example.com")
+    try:
+        response = client.post(
+            doh_url,
+            content=query,
+            headers={
+                "Content-Type": "application/dns-message",
+                "Accept": "application/dns-message",
+            },
+        )
+        if 200 <= response.status_code < 300:
+            return "post"
+    except Exception:
+        pass
+    try:
+        encoded = encode_dns_query_base64url(query)
+        sep = "&" if "?" in doh_url else "?"
+        response = client.get(
+            f"{doh_url}{sep}dns={encoded}",
+            headers={"Accept": "application/dns-message"},
+        )
+        if 200 <= response.status_code < 300:
+            return "get"
+    except Exception:
+        pass
+    return None
+
+
+def measure_doh_speed(
+    client: httpx.Client, doh_url: str, hostname: str, method: str
+) -> float | None:
+    query = build_dns_query(hostname)
+    try:
+        start = time.perf_counter()
+        if method == "get":
+            encoded = encode_dns_query_base64url(query)
+            sep = "&" if "?" in doh_url else "?"
+            response = client.get(
+                f"{doh_url}{sep}dns={encoded}",
+                headers={"Accept": "application/dns-message"},
+            )
+        else:
+            response = client.post(
+                doh_url,
+                content=query,
+                headers={
+                    "Content-Type": "application/dns-message",
+                    "Accept": "application/dns-message",
+                },
+            )
+        elapsed = (time.perf_counter() - start) * 1000.0
+        if 200 <= response.status_code < 300:
+            return elapsed
+        return None
+    except Exception:
+        return None
 
 
 def is_admin() -> bool:
@@ -76,6 +177,7 @@ class DNSPreset:
     description: str
     icon: str
     color: str
+    doh_url: str = ""
 
 
 @dataclass
@@ -84,6 +186,8 @@ class AppState:
     selected_adapter: str | None = None
     current_dns: list[str] = field(default_factory=list)
     busy: bool = False
+    speed_results: dict = field(default_factory=dict)
+    testing_speed: bool = False
 
 
 class DNSService:
@@ -187,6 +291,7 @@ class DNSManagerApp:
                 "Reliable public DNS with broad reach.",
                 ft.Icons.PUBLIC,
                 ft.Colors.BLUE_400,
+                "https://dns.google/dns-query",
             ),
             DNSPreset(
                 "Cloudflare",
@@ -195,6 +300,7 @@ class DNSManagerApp:
                 "Fast privacy-focused resolver.",
                 ft.Icons.FLASH_ON,
                 ft.Colors.ORANGE_400,
+                "https://cloudflare-dns.com/dns-query",
             ),
             DNSPreset(
                 "Cloudflare Security",
@@ -203,6 +309,7 @@ class DNSManagerApp:
                 "Blocks malware and phishing domains.",
                 ft.Icons.SECURITY,
                 ft.Colors.ORANGE_700,
+                "https://security.cloudflare-dns.com/dns-query",
             ),
             DNSPreset(
                 "Quad9",
@@ -211,6 +318,7 @@ class DNSManagerApp:
                 "Security-oriented resolver with threat blocking.",
                 ft.Icons.SHIELD,
                 ft.Colors.GREEN_400,
+                "https://dns.quad9.net/dns-query",
             ),
             DNSPreset(
                 "OpenDNS",
@@ -219,6 +327,7 @@ class DNSManagerApp:
                 "Cisco public DNS with stable performance.",
                 ft.Icons.BUSINESS,
                 ft.Colors.PURPLE_400,
+                "https://doh.opendns.com/dns-query",
             ),
             DNSPreset(
                 "AdGuard",
@@ -227,6 +336,7 @@ class DNSManagerApp:
                 "General ad and tracker blocking DNS.",
                 ft.Icons.BLOCK,
                 ft.Colors.RED_400,
+                "https://dns.adguard-dns.com/dns-query",
             ),
             DNSPreset(
                 "CleanBrowsing",
@@ -235,6 +345,7 @@ class DNSManagerApp:
                 "Family-safe content filtering.",
                 ft.Icons.FAMILY_RESTROOM,
                 ft.Colors.LIGHT_BLUE_400,
+                "https://doh.cleanbrowsing.org/doh/family-filter/",
             ),
             DNSPreset(
                 "Mullvad DNS",
@@ -243,6 +354,7 @@ class DNSManagerApp:
                 "Privacy-first resolver from Mullvad.",
                 ft.Icons.PRIVACY_TIP,
                 ft.Colors.GREEN_700,
+                "https://dns.mullvad.net/dns-query",
             ),
             DNSPreset(
                 "DNS.Watch",
@@ -318,6 +430,14 @@ class DNSManagerApp:
         self.log_list = ft.ListView(expand=True, spacing=8, auto_scroll=True)
         self.preset_grid = ft.ResponsiveRow(run_spacing=12, spacing=12)
 
+        self.speed_test_button = ft.ElevatedButton(
+            "Speed Test",
+            icon=ft.Icons.SPEED,
+            style=ft.ButtonStyle(bgcolor=ft.Colors.CYAN_700, color=ft.Colors.WHITE),
+            on_click=self.start_speed_test,
+        )
+        self.speed_test_progress = ft.Text("", size=11, color=ft.Colors.BLUE_GREY_300)
+
     def build_layout(self) -> None:
         header = ft.Container(
             padding=ft.padding.symmetric(horizontal=28, vertical=24),
@@ -338,7 +458,6 @@ class DNSManagerApp:
                         spacing=4,
                         controls=[
                             ft.Text("DNS Manager", size=30, weight=ft.FontWeight.BOLD),
-                            
                         ],
                     ),
                     ft.Container(expand=True),
@@ -399,6 +518,13 @@ class DNSManagerApp:
         preset_panel = self.panel(
             title="Presets",
             subtitle="Pick a known resolver or switch to custom mode.",
+            trailing=ft.Row(
+                spacing=8,
+                controls=[
+                    self.speed_test_progress,
+                    self.speed_test_button,
+                ],
+            ),
             content=ft.Column(controls=[self.preset_grid], spacing=0),
         )
 
@@ -499,6 +625,59 @@ class DNSManagerApp:
         self.preset_grid.controls.clear()
         for preset in self.presets:
             active = preset.name == self.selected_preset.name
+            ping_text = self.state.speed_results.get(preset.name)
+            ping_row = ft.Row(
+                spacing=0,
+                controls=[ft.Container(expand=True)],
+            )
+            if not preset.doh_url:
+                ping_row.controls.append(
+                    ft.Text(
+                        "No DoH",
+                        size=10,
+                        color=ft.Colors.BLUE_GREY_500,
+                        weight=ft.FontWeight.W_600,
+                    )
+                )
+            elif ping_text is not None:
+                avg = ping_text.get("avg")
+                status = ping_text.get("status", "failed")
+                if avg is not None:
+                    if status == "healthy":
+                        ping_color = (
+                            ft.Colors.GREEN_300
+                            if avg < 50
+                            else (
+                                ft.Colors.AMBER_300
+                                if avg < 75
+                                else (
+                                    ft.Colors.RED_400
+                                    if avg < 100
+                                    else ft.Colors.RED_900
+                                )
+                            )
+                        )
+                    elif status == "partial":
+                        ping_color = ft.Colors.AMBER_300
+                    else:
+                        ping_color = ft.Colors.RED_300
+                    ping_row.controls.append(
+                        ft.Text(
+                            f"{avg:.1f} ms",
+                            size=11,
+                            color=ping_color,
+                            weight=ft.FontWeight.BOLD,
+                        )
+                    )
+                elif status == "failed":
+                    ping_row.controls.append(
+                        ft.Text(
+                            "Failed",
+                            size=11,
+                            color=ft.Colors.RED_300,
+                            weight=ft.FontWeight.BOLD,
+                        )
+                    )
             card = ft.Container(
                 col={"xs": 12, "sm": 6, "lg": 4},
                 ink=True,
@@ -556,6 +735,7 @@ class DNSManagerApp:
                                 ],
                             ),
                         ),
+                        ping_row,
                     ],
                 ),
             )
@@ -726,6 +906,167 @@ class DNSManagerApp:
 
         threading.Thread(target=worker, daemon=True).start()
 
+    def start_speed_test(self, _event: ft.ControlEvent) -> None:
+        if self.state.testing_speed:
+            return
+        self.state.testing_speed = True
+        self.state.speed_results.clear()
+        self.speed_test_button.disabled = True
+        self.speed_test_button.text = "Testing..."
+        self.speed_test_progress.value = "Warming up..."
+        self.speed_test_progress.color = ft.Colors.BLUE_GREY_300
+        self.rebuild_preset_cards()
+        self.safe_update(self.speed_test_button, self.speed_test_progress)
+
+        def worker() -> None:
+            try:
+                testable = [p for p in self.presets if p.doh_url]
+                total = len(testable)
+
+                for i, preset in enumerate(testable):
+                    progress_text = f"Warming up {preset.name} ({i + 1}/{total})..."
+                    self.page.run_thread(
+                        lambda t=progress_text: self._update_test_progress(t)
+                    )
+
+                    try:
+                        client = httpx.Client(
+                            timeout=httpx.Timeout(TIMEOUT_SECONDS),
+                            follow_redirects=True,
+                            http2=True,
+                        )
+                        method = _detect_doh_method(client, preset.doh_url)
+                        if method is None:
+                            self.state.speed_results[preset.name] = {
+                                "avg": None,
+                                "status": "failed",
+                                "success": 0,
+                                "total": len(TEST_HOSTNAMES) * TEST_ROUNDS,
+                            }
+                            client.close()
+                            self.page.run_thread(
+                                lambda: self.rebuild_preset_cards()
+                            )
+                            continue
+
+                        for _ in range(2):
+                            measure_doh_speed(
+                                client, preset.doh_url, "example.com", method
+                            )
+                    except Exception:
+                        self.state.speed_results[preset.name] = {
+                            "avg": None,
+                            "status": "failed",
+                            "success": 0,
+                            "total": len(TEST_HOSTNAMES) * TEST_ROUNDS,
+                        }
+                        self.page.run_thread(
+                            lambda: self.rebuild_preset_cards()
+                        )
+                        continue
+
+                    all_rounds: dict[str, list[float]] = {
+                        h: [] for h in TEST_HOSTNAMES
+                    }
+
+                    for round_num in range(1, TEST_ROUNDS + 1):
+                        progress_text = (
+                            f"Testing {preset.name} "
+                            f"({i + 1}/{total}) — Round {round_num}/{TEST_ROUNDS}"
+                        )
+                        self.page.run_thread(
+                            lambda t=progress_text: self._update_test_progress(t)
+                        )
+
+                        for hostname in TEST_HOSTNAMES:
+                            ms = measure_doh_speed(
+                                client, preset.doh_url, hostname, method
+                            )
+                            if ms is not None:
+                                all_rounds[hostname].append(ms)
+
+                    client.close()
+
+                    hostname_medians = []
+                    total_queries = len(TEST_HOSTNAMES) * TEST_ROUNDS
+                    success_count = 0
+
+                    for hostname, times in all_rounds.items():
+                        if times:
+                            times.sort()
+                            mid = len(times) // 2
+                            if len(times) % 2 == 0:
+                                median_val = (times[mid - 1] + times[mid]) / 2
+                            else:
+                                median_val = times[mid]
+                            hostname_medians.append(median_val)
+                            success_count += len(times)
+
+                    if not hostname_medians:
+                        self.state.speed_results[preset.name] = {
+                            "avg": None,
+                            "status": "failed",
+                            "success": 0,
+                            "total": total_queries,
+                        }
+                    else:
+                        avg = sum(hostname_medians) / len(hostname_medians)
+                        fail_count = total_queries - success_count
+                        if fail_count == 0:
+                            status = "healthy"
+                        else:
+                            status = "partial"
+                        self.state.speed_results[preset.name] = {
+                            "avg": avg,
+                            "status": status,
+                            "success": success_count,
+                            "total": total_queries,
+                        }
+
+                    self.page.run_thread(lambda: self.rebuild_preset_cards())
+
+                tested_count = sum(
+                    1
+                    for p in testable
+                    if self.state.speed_results.get(p.name, {}).get("status")
+                    != "failed"
+                )
+                self.page.run_thread(
+                    lambda: self._finish_speed_test(tested_count, total)
+                )
+            except Exception as exc:
+                self.page.run_thread(
+                    lambda: self._finish_speed_test(0, total, str(exc))
+                )
+
+        threading.Thread(target=worker, daemon=True).start()
+
+    def _update_test_progress(self, text: str) -> None:
+        self.speed_test_progress.value = text
+        self.safe_update(self.speed_test_progress)
+
+    def _finish_speed_test(
+        self, tested_count: int, total: int, error: str | None = None
+    ) -> None:
+        self.state.testing_speed = False
+        self.speed_test_button.disabled = False
+        self.speed_test_button.text = "Speed Test"
+
+        if error:
+            self.speed_test_progress.value = f"Error: {error}"
+            self.speed_test_progress.color = ft.Colors.RED_300
+            self.add_log(f"Speed test failed: {error}", ft.Colors.RED_400)
+        else:
+            self.speed_test_progress.value = f"Tested {tested_count}/{total} servers"
+            self.speed_test_progress.color = ft.Colors.GREEN_300
+            self.add_log(
+                f"Speed test complete: {tested_count}/{total} servers tested.",
+                ft.Colors.GREEN_400,
+            )
+
+        self.rebuild_preset_cards()
+        self.safe_update(self.speed_test_button, self.speed_test_progress)
+
     def set_busy(self, busy: bool, status: str) -> None:
         self.state.busy = busy
         self.status_ring.visible = busy
@@ -735,6 +1076,7 @@ class DNSManagerApp:
         self.flush_button.disabled = busy
         self.refresh_button.disabled = busy
         self.adapter_dropdown.disabled = busy
+        self.speed_test_button.disabled = busy or self.state.testing_speed
         self.safe_update(
             self.status_ring,
             self.status_text,
@@ -743,6 +1085,7 @@ class DNSManagerApp:
             self.flush_button,
             self.refresh_button,
             self.adapter_dropdown,
+            self.speed_test_button,
         )
 
     def add_log(self, message: str, color: str | None = None) -> None:

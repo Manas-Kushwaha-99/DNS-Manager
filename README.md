@@ -13,6 +13,7 @@ Easily switch between public DNS providers, configure custom servers, reset to a
 * 🛠️ Add custom DNS (Primary & Secondary)
 * 🔄 Reset DNS to automatic (DHCP)
 * 🧹 Flush DNS cache instantly
+* 🚀 DoH Speed Test — benchmark DNS-over-HTTPS servers right from the app
 * 📝 Real-time activity log with timestamps
 * 🎨 Dark modern interface with icons & presets
 
@@ -30,6 +31,7 @@ Easily switch between public DNS providers, configure custom servers, reset to a
 
 * 🐍 Python 3.10+
 * 🎨 [Flet](https://flet.dev/) for GUI(Version:0.28.3)
+* 🌐 [httpx](https://www.python-httpx.org/) + [h2](https://hyper-h2.readthedocs.io/) for DoH speed testing
 * 💻 Windows PowerShell (network commands)
 
 ---
@@ -46,7 +48,7 @@ cd DNS-Manager
 ### 2️⃣ Install dependencies
 
 ```bash
-pip install flet==0.28.3
+pip install flet==0.28.3 httpx h2
 ```
 
 ### 3️⃣ Run the tool
@@ -66,23 +68,23 @@ python DNS-Manager.py
 A ready-to-run Windows build is available on GitHub Releases.
 
 **Latest stable release**  
-[DNS Manager](https://github.com/Manas-Kushwaha-99/DNS-Manager/releases/tag/2.0)
+[DNS Manager v3.0](https://github.com/Manas-Kushwaha-99/DNS-Manager/releases/latest)
 
 ---
 
 ## 🌍 Supported DNS Presets
 
-| Provider             | Primary DNS      | Secondary DNS     | Notes                         |
-| -------------------- | ---------------- | ----------------- | ----------------------------- |
-| **Google**           | `8.8.8.8`        | `8.8.4.4`         | Fast & reliable               |
-| **Cloudflare**       | `1.1.1.1`        | `1.0.0.1`         | Privacy-focused               |
-| **Cloudflare Security**| `1.1.1.2`        | `1.0.0.2`         | Malware & phishing protection |
-| **Quad9**            | `9.9.9.9`        | `149.112.112.112` | Security + privacy            |
-| **OpenDNS**          | `208.67.222.222` | `208.67.220.220`  | Cisco’s reliable DNS          |
-| **AdGuard**          | `94.140.14.14`   | `94.140.15.15`    | Ad-blocking DNS               |
-| **CleanBrowsing**    | `185.228.168.9`  | `185.228.169.9`   | Family-safe filtering         |
-| **DNS.Watch**        | `84.200.69.80`   | `84.200.70.40`    | German privacy DNS            |
-| **Mullvad**          | `194.242.2.2`    | `194.242.2.3`     | Privacy-first, Mullvad VPN    |
+| Provider             | Primary DNS      | Secondary DNS     | DoH Support | Notes                         |
+| -------------------- | ---------------- | ----------------- | ----------- | ----------------------------- |
+| **Google**           | `8.8.8.8`        | `8.8.4.4`         | ✅          | Fast & reliable               |
+| **Cloudflare**       | `1.1.1.1`        | `1.0.0.1`         | ✅          | Privacy-focused               |
+| **Cloudflare Security**| `1.1.1.2`        | `1.0.0.2`         | ✅          | Malware & phishing protection |
+| **Quad9**            | `9.9.9.9`        | `149.112.112.112` | ✅          | Security + privacy            |
+| **OpenDNS**          | `208.67.222.222` | `208.67.220.220`  | ✅          | Cisco's reliable DNS          |
+| **AdGuard**          | `94.140.14.14`   | `94.140.15.15`    | ✅          | Ad-blocking DNS               |
+| **CleanBrowsing**    | `185.228.168.9`  | `185.228.169.9`   | ✅          | Family-safe filtering         |
+| **Mullvad**          | `194.242.2.2`    | `194.242.2.3`     | ✅          | Privacy-first, Mullvad VPN    |
+| **DNS.Watch**        | `84.200.69.80`   | `84.200.70.40`    | ❌          | German privacy DNS            |
 
 ---
 
